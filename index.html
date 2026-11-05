@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#212B52">
+<title>SIGLA Log Viewer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#212B52; --navy-dark:#151C38; --navy-soft:#3A4470; --on-navy-muted:#D5D9E8;
+  --ground:#F6F5F2; --card:#FFFFFF; --line:#DEDCD7; --chip:#EDEBE6;
+  --ink:#161616; --muted:#5A5A5A; --accent:#E97132; --coco:#B4501F; --danger:#A3261C;
+  --radius:14px;
+  --sans:'DM Sans', Arial, Helvetica, sans-serif;
+  --serif:'DM Serif Display', Georgia, 'Times New Roman', serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans)}
+body{min-height:100vh;display:flex;justify-content:center}
+.app{width:100%;max-width:440px;padding:calc(env(safe-area-inset-top,0px) + 20px) 22px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-family:var(--serif);font-weight:400;color:var(--navy)}
+h2{margin:0;font-size:16px;font-weight:700}
+p{margin:0}
+.screen{display:none;flex-direction:column;gap:18px}
+.screen.active{display:flex}
+.brand{font-size:46px;letter-spacing:1px}
+.title{font-size:32px}
+.sub{font-size:15px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;gap:12px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.status-dot{width:40px;height:40px;border-radius:20px;background:var(--chip);display:flex;align-items:center;justify-content:center;flex:none}
+.status-dot.on{background:#DCEFE3}
+.strong{font-size:16px;font-weight:700}
+.small{font-size:13px;color:var(--muted)}
+.tiny{font-size:12px;color:var(--muted)}
+button,.btn{font-family:inherit;font-size:16px;font-weight:700;border-radius:12px;min-height:52px;padding:0 16px;cursor:pointer;border:none}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:var(--navy-dark)}
+.btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--navy);min-height:48px;font-size:15px}
+.btn-text{background:none;color:var(--danger);min-height:44px;font-size:14px;padding:0}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.nav-tile{display:flex;align-items:center;justify-content:space-between;min-height:64px;padding:14px 18px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);text-decoration:none;color:var(--ink)}
+.nav-tile .t{display:flex;flex-direction:column;gap:2px}
+.back{display:inline-flex;align-items:center;gap:4px;min-height:44px;font-size:15px;font-weight:700;color:var(--navy);text-decoration:none;align-self:flex-start}
+.week{background:var(--navy);color:#fff;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.week .big{font-size:34px;font-weight:700}
+.week .muted{color:var(--on-navy-muted);font-size:15px}
+.bar{height:10px;border-radius:5px;background:var(--navy-soft);overflow:hidden}
+.bar>div{height:10px;border-radius:5px;background:var(--accent);width:0}
+.chip{font-size:12px;color:var(--muted);background:var(--chip);padding:4px 10px;border-radius:10px}
+.list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.item{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.item .r{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stat .v{font-size:22px;font-weight:700;color:var(--navy)}
+.stat .v.coco{color:var(--coco)}
+svg text{font-family:var(--sans)}
+.empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:14px;line-height:1.5}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th,.tbl td{text-align:left;padding:8px}
+.tbl th{background:var(--chip)}
+.tbl td{border-top:1px solid var(--chip)}
+label{font-size:14px;font-weight:700}
+input[type=text]{height:48px;padding:0 14px;border:1px solid #C9C6BF;border-radius:12px;background:#fff;font-family:inherit;font-size:15px;color:var(--ink)}
+.note{background:var(--chip);border-radius:12px;padding:14px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;color:#333}
+.footer{font-size:13px;line-height:1.5;color:var(--muted);text-align:center}
+.guide-sec{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.guide-sec summary{list-style:none;cursor:pointer;min-height:56px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:700;font-size:16px}
+.guide-sec summary::-webkit-details-marker{display:none}
+.guide-sec summary::after{content:"+";font-size:22px;color:var(--navy);font-weight:500}
+.guide-sec[open] summary::after{content:"\2212"}
+.guide-body{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;font-size:15px;line-height:1.5}
+.guide-body ol,.guide-body ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.ex{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.ex .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ex .dose{font-size:13px;color:var(--navy);font-weight:700;white-space:nowrap}
+.plan{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.plan li{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:start}
+.plan .t{font-size:13px;font-weight:700;color:#fff;background:var(--navy);border-radius:8px;padding:4px 0;text-align:center}
+.plan .t.rest{background:var(--chip);color:var(--ink)}
+.callout{background:#FDF1EA;border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.5}
+.toast{position:fixed;left:50%;width:max-content;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);background:var(--ink);color:#fff;font-size:14px;padding:12px 16px;border-radius:12px;max-width:90vw;display:none}
+.toast.show{display:block}
+@media (prefers-reduced-motion:no-preference){.bar>div{transition:width .4s ease}}
+</style>
+</head>
+<body>
+<main class="app">
+
+  <!-- HOME -->
+  <section class="screen" id="home" aria-labelledby="home-h">
+    <div style="display:flex;flex-direction:column;gap:4px;padding-top:6px">
+      <h1 id="home-h" class="brand">SIGLA</h1>
+      <p class="sub">Session log viewer</p>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div class="status-dot" id="statusDot" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4D4D4D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span class="strong" id="statusText">Device not connected</span>
+          <span class="small" id="statusSub">No sessions loaded</span>
+        </div>
+      </div>
+      <button class="btn-primary" id="btnConnect">Connect to SIGLA</button>
+      <button class="btn-outline" id="btnSample">Load sample data</button>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:12px" aria-label="Sections">
+      <a class="nav-tile" href="#sessions"><span class="t"><span class="strong">Session history</span><span class="small" id="tileSessions">No sessions yet</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a class="nav-tile" href="#progress"><span class="t"><span class="strong">Progress</span><span class="small">Practice time and co-contraction trend</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a class="nav-tile" href="#guide"><span class="t"><span class="strong">Exercise guide</span><span class="small">How to set up, exercises, and a 45-minute plan</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a class="nav-tile" href="#export"><span class="t"><span class="strong">Export for therapist</span><span class="small">Save and share a CSV summary</span></span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+    </nav>
+    <button class="btn-text" id="btnClear">Clear all saved sessions</button>
+    <p class="footer">SIGLA works without this app. The app only reviews sessions already saved on the device.</p>
+  </section>
+
+  <!-- SESSIONS -->
+  <section class="screen" id="sessions" aria-labelledby="sess-h">
+    <a class="back" href="#home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Home</a>
+    <h1 id="sess-h" class="title">Session history</h1>
+    <div class="week">
+      <span class="muted" style="font-size:13px" id="weekLabel">Last 7 days</span>
+      <div style="display:flex;align-items:baseline;gap:6px"><span class="big" id="weekMin">0</span><span class="muted">of 225 min practice target</span></div>
+      <div class="bar" role="progressbar" aria-label="Weekly practice" aria-valuemin="0" aria-valuemax="225" aria-valuenow="0" id="weekBar"><div id="weekFill"></div></div>
+      <span class="muted" style="font-size:12px">Target: 45 minutes a day, 5 days a week</span>
+    </div>
+    <div class="between"><h2>All sessions</h2><span class="chip" id="sourceChip" hidden>Sample data</span></div>
+    <ul class="list" id="sessionList"></ul>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="screen" id="progress" aria-labelledby="prog-h">
+    <a class="back" href="#home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Home</a>
+    <h1 id="prog-h" class="title">Progress</h1>
+    <div class="stats">
+      <div class="card stat" style="gap:4px;padding:14px"><span class="tiny">Practice per session</span><span class="v" id="statMin">–</span></div>
+      <div class="card stat" style="gap:4px;padding:14px"><span class="tiny">Co-contraction count</span><span class="v coco" id="statCoco">–</span></div>
+    </div>
+    <div class="card"><h2 style="font-size:15px">Practice minutes per session</h2><div id="chartMin"></div></div>
+    <div class="card"><h2 style="font-size:15px">Co-contraction count per session</h2><div id="chartCoco"></div><span class="tiny">Oldest to newest session. Lower is better.</span></div>
+  </section>
+
+  <!-- GUIDE -->
+  <section class="screen" id="guide" aria-labelledby="guide-h">
+    <a class="back" href="#home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Home</a>
+    <h1 id="guide-h" class="title">Exercise guide</h1>
+    <p class="callout"><b>Sample guide.</b> Follow the exercises, number of repetitions and session length set by your physical therapist. Stop and ask your therapist if anything hurts.</p>
+
+    <details class="guide-sec" open>
+      <summary>Before you start</summary>
+      <div class="guide-body">
+        <ol>
+          <li>Sit in a chair with your forearm resting on a table, palm facing down.</li>
+          <li>Clean the skin on the upper forearm, near the elbow, with an alcohol wipe and let it dry.</li>
+          <li>Attach the electrodes where your therapist marked them: one sensor on top of the forearm (wrist extensor) and one on the palm side (wrist flexor).</li>
+          <li>Strap the SIGLA unit near the wrist and keep the cables taped along the arm.</li>
+          <li>Sit away from electric fans, chargers and other plugged-in appliances.</li>
+          <li>Turn on SIGLA and wait for <b>Signal OK</b>. If a message appears, follow it, then try again.</li>
+          <li>Follow the calibration steps on the screen: relax, then lift your hand back as hard as is comfortable.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details class="guide-sec">
+      <summary>What the lights mean</summary>
+      <div class="guide-body">
+        <ul>
+          <li><b>Green:</b> only the target muscle is working. This is the goal.</li>
+          <li><b>Yellow:</b> co-contraction. Both muscles are working against each other.</li>
+          <li><b>Red:</b> mostly the palm-side muscle is working.</li>
+          <li><b>Red blinking:</b> a signal problem. Read the message on the screen.</li>
+          <li>A repetition counts only when you hold green for 2 seconds.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="guide-sec">
+      <summary>Exercises</summary>
+      <div class="guide-body">
+        <div class="ex"><div class="h"><span class="strong">1. Wrist lift and hold</span><span class="dose">10 reps · 3 sets</span></div>
+          <span>Lift your hand back slowly, as if waving "stop", and hold for 3 seconds while the light is green. Relax fully before the next repetition.</span></div>
+        <div class="ex"><div class="h"><span class="strong">2. Slow wrist lifts</span><span class="dose">10 reps · 3 sets</span></div>
+          <span>Lift the hand back slowly over 3 seconds, then lower it slowly over 3 seconds. Try to keep the light green on the way up.</span></div>
+        <div class="ex"><div class="h"><span class="strong">3. Contract, then relax</span><span class="dose">10 reps · 2 sets</span></div>
+          <span>Lift the hand back until the light turns green, then let the whole arm go loose until the device shows Rest. This trains relaxing as well as activating.</span></div>
+        <div class="ex"><div class="h"><span class="strong">4. Gentle effort practice</span><span class="dose">10 reps · 2 sets</span></div>
+          <span>Lift the hand back using only half your effort. Find the smallest effort that still turns the light green.</span></div>
+        <p class="tiny">If you cannot move the hand yet, still try each exercise. SIGLA measures the muscle signal even when the movement is very small.</p>
+      </div>
+    </details>
+
+    <details class="guide-sec">
+      <summary>Sample session: 45 minutes of practice</summary>
+      <div class="guide-body">
+        <ol class="plan">
+          <li><span class="t">5 min</span><span><b>Set up and calibrate.</b> Attach the sensors, wait for Signal OK, and follow the calibration steps.</span></li>
+          <li><span class="t">12 min</span><span><b>Exercise 1:</b> wrist lift and hold, 3 sets of 10.</span></li>
+          <li><span class="t rest">2 min</span><span>Rest with the arm supported.</span></li>
+          <li><span class="t">12 min</span><span><b>Exercise 2:</b> slow wrist lifts, 3 sets of 10.</span></li>
+          <li><span class="t rest">2 min</span><span>Rest.</span></li>
+          <li><span class="t">11 min</span><span><b>Exercise 3:</b> contract, then relax, 2 sets of 10.</span></li>
+          <li><span class="t">10 min</span><span><b>Exercise 4:</b> gentle effort practice, 2 sets of 10.</span></li>
+          <li><span class="t rest">3 min</span><span><b>Finish.</b> Remove the electrodes, check the skin, and let SIGLA save the session.</span></li>
+        </ol>
+        <p class="tiny">Active practice: 45 minutes (the four exercise blocks), the recommended daily minimum of 45 minutes of active practice, 5 days a week. With set-up, rests and finishing, the whole session takes about 57 minutes. Your therapist may change this plan.</p>
+      </div>
+    </details>
+
+    <details class="guide-sec">
+      <summary>If the light turns yellow (co-contraction)</summary>
+      <div class="guide-body">
+        <ol>
+          <li><b>Use less effort.</b> Pushing too hard often makes both muscles tighten.</li>
+          <li><b>Relax the palm side</b> of your forearm and fingers while lifting the hand back.</li>
+          <li><b>Slow down.</b> A slower lift gives you time to notice and let go of the tight muscle.</li>
+          <li><b>Reset.</b> Let the arm go fully loose until the screen shows Rest, then try again.</li>
+          <li><b>Check your position.</b> Keep the forearm resting on the table and the shoulder relaxed.</li>
+          <li><b>Take a break</b> if it happens several times in a row. SIGLA will suggest a 30-second rest.</li>
+        </ol>
+        <p class="callout">If the light stays yellow for most of the session, or across several sessions, tell your therapist. They may change the exercise or check the sensor placement.</p>
+      </div>
+    </details>
+
+    <details class="guide-sec">
+      <summary>Stop and ask your therapist if</summary>
+      <div class="guide-body">
+        <ul>
+          <li>You feel pain, numbness or tingling, or the arm feels unusually tired.</li>
+          <li>The skin under the electrodes becomes red, itchy or sore.</li>
+          <li>You feel dizzy, unwell or out of breath.</li>
+        </ul>
+        <p class="tiny">SIGLA is a practice aid, not a medical device. It does not replace your therapist's advice.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- EXPORT -->
+  <section class="screen" id="export" aria-labelledby="exp-h">
+    <a class="back" href="#home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Home</a>
+    <h1 id="exp-h" class="title">Export for therapist</h1>
+    <p class="sub" style="line-height:1.5">Save the session logs as a CSV file and share it with the patient's physical therapist.</p>
+    <div class="card">
+      <div class="between"><h2 style="font-size:15px">File preview</h2><span class="tiny">SIGLA_logs.csv</span></div>
+      <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Date</th><th>Min</th><th>Co-con.</th><th>Faults</th></tr></thead><tbody id="previewBody"></tbody></table></div>
+      <span class="tiny" id="previewNote"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label for="pid">Patient ID</label>
+      <input id="pid" type="text" autocomplete="off" placeholder="e.g. P-001">
+    </div>
+    <button class="btn-primary" id="btnExport">Export and share CSV</button>
+    <div class="note"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#212B52" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex:none;margin-top:1px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Logs are stored on this phone only and use a patient ID instead of a full name. Share only with the patient's consent.</span></div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== Settings that must match the XIAO ESP32-S3 firmware ===== */
+const SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e'; // SIGLA log service
+const RX_UUID      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // app -> device (write "SEND")
+const TX_UUID      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // device -> app (notify log lines)
+const WEEK_TARGET  = 225; // 45 min x 5 days (PARM recommendation)
+
+/* Line format sent by the device, one session per line, ending with "END":
+   date,time,minutes,extensorOnly,coContraction,flexorDominant,rest,signalFaults */
+const SAMPLE = [
+  '2026-11-02,09:00,25,12,10,5,3,3','2026-11-03,09:15,30,15,9,4,3,2','2026-11-04,08:45,35,18,8,4,2,2',
+  '2026-11-05,09:10,40,22,7,3,2,1','2026-11-06,09:05,45,25,6,3,2,1','2026-11-09,09:00,45,27,5,2,2,0',
+  '2026-11-10,08:50,45,29,4,2,1,0'];
+
+/* ===== Storage ===== */
+const KEY='sigla.sessions.v1', KEY_SRC='sigla.source.v1', KEY_PID='sigla.pid.v1';
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+function save(list){ try{ localStorage.setItem(KEY, JSON.stringify(list)); }catch(e){ toast('Could not save on this phone.'); } }
+function getSrc(){ try{ return localStorage.getItem(KEY_SRC)||''; }catch(e){ return ''; } }
+function setSrc(v){ try{ localStorage.setItem(KEY_SRC,v); }catch(e){} }
+
+function parseLine(line){
+  const p=line.trim().split(',');
+  if(p.length<8) return null;
+  const n=p.slice(2).map(Number);
+  if(n.some(Number.isNaN)) return null;
+  return {date:p[0],time:p[1],minutes:n[0],extensor:n[1],coco:n[2],flexor:n[3],rest:n[4],faults:n[5]};
+}
+function addSessions(lines, source){
+  const list=load(); const keys=new Set(list.map(s=>s.date+' '+s.time)); let added=0;
+  lines.forEach(l=>{ const s=parseLine(l); if(s && !keys.has(s.date+' '+s.time)){ list.push(s); keys.add(s.date+' '+s.time); added++; } });
+  list.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  save(list); if(source) setSrc(source); return added;
+}
+
+/* ===== Formatting helpers ===== */
+const DAY=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function d(s){ const [y,m,dd]=s.date.split('-').map(Number); return new Date(y,m-1,dd); }
+function fmtDate(s){ const x=d(s); return DAY[x.getDay()]+', '+MON[x.getMonth()]+' '+x.getDate(); }
+function fmtShort(s){ const x=d(s); return MON[x.getMonth()]+' '+x.getDate(); }
+function fmtTime(t){ let [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+String(m).padStart(2,'0')+' '+ap; }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),3200); }
+
+/* ===== Rendering ===== */
+function renderHome(){
+  const n=load().length;
+  document.getElementById('tileSessions').textContent = n ? n+' saved session'+(n>1?'s':'') : 'No sessions yet';
+  if(!connected) document.getElementById('statusSub').textContent = n ? (getSrc()==='sample' ? 'Showing sample data' : n+' sessions saved on this phone') : 'No sessions loaded';
+}
+function renderSessions(){
+  const list=load(), ul=document.getElementById('sessionList');
+  document.getElementById('sourceChip').hidden = getSrc()!=='sample';
+  if(!list.length){ ul.innerHTML='<li class="empty">No sessions yet. Connect to SIGLA to download them, or load sample data from the home screen.</li>'; }
+  else ul.innerHTML = list.slice().reverse().map(s=>`<li class="item"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700">${esc(fmtDate(s))}</span><span class="small">${esc(fmtTime(s.time))}, ${s.minutes} min</span></div><div class="r"><span style="font-size:13px">Co-contraction: <b>${s.coco}</b></span><span class="tiny">Signal faults: ${s.faults}</span></div></li>`).join('');
+  // last 7 days ending on the newest session
+  let total=0, label='Last 7 days';
+  if(list.length){ const end=d(list[list.length-1]); const start=new Date(end); start.setDate(end.getDate()-6);
+    total=list.filter(s=>{const x=d(s); return x>=start && x<=end;}).reduce((a,s)=>a+s.minutes,0);
+    label='Last 7 days, '+MON[start.getMonth()]+' '+start.getDate()+' to '+MON[end.getMonth()]+' '+end.getDate(); }
+  document.getElementById('weekLabel').textContent=label;
+  document.getElementById('weekMin').textContent=total;
+  document.getElementById('weekBar').setAttribute('aria-valuenow',total);
+  document.getElementById('weekFill').style.width=Math.min(100,Math.round(total/WEEK_TARGET*100))+'%';
+}
+function lineChart(values, color, max, targetLine, label){
+  if(!values.length) return '<p class="empty">No sessions yet.</p>';
+  const W=310,H=130,L=20,R=290,T=20,B=110, step=values.length>1?(R-L)/(values.length-1):0;
+  const pts=values.map((v,i)=>[L+i*step, B-(v/max)*(B-T)]);
+  const target = targetLine!=null ? `<line x1="${L}" y1="${B-(targetLine/max)*(B-T)}" x2="${R+5}" y2="${B-(targetLine/max)*(B-T)}" stroke="#D5D2CB" stroke-dasharray="4 4"/><text x="${R+2}" y="${B-(targetLine/max)*(B-T)-5}" font-size="10" fill="#5A5A5A" text-anchor="end">${targetLine}-min target</text>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(label)}"><line x1="${L}" y1="${B}" x2="${R+5}" y2="${B}" stroke="#DEDCD7"/>${target}<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${color}"/>`).join('')}</svg>`;
+}
+function renderProgress(){
+  const list=load(); const mins=list.map(s=>s.minutes), coco=list.map(s=>s.coco);
+  document.getElementById('statMin').textContent = list.length ? mins[0]+' → '+mins[mins.length-1]+' min' : '–';
+  document.getElementById('statCoco').textContent = list.length ? coco[0]+' → '+coco[coco.length-1] : '–';
+  const maxMin=Math.max(50,...mins,0), maxCoco=Math.max(5,...coco,0)*1.2;
+  document.getElementById('chartMin').innerHTML = lineChart(mins,'#212B52',maxMin,45,'Practice minutes per session, oldest to newest');
+  document.getElementById('chartCoco').innerHTML = lineChart(coco,'#B4501F',maxCoco,null,'Co-contraction count per session, oldest to newest');
+}
+function renderExport(){
+  const list=load().slice().reverse(), body=document.getElementById('previewBody');
+  body.innerHTML = list.slice(0,4).map(s=>`<tr><td>${esc(fmtShort(s))}</td><td>${s.minutes}</td><td>${s.coco}</td><td>${s.faults}</td></tr>`).join('') || '<tr><td colspan="4">No sessions yet.</td></tr>';
+  document.getElementById('previewNote').textContent = list.length ? 'Showing '+Math.min(4,list.length)+' of '+list.length+' sessions'+(getSrc()==='sample'?', sample data':'') : '';
+  try{ document.getElementById('pid').value = localStorage.getItem(KEY_PID)||''; }catch(e){}
+}
+
+/* ===== Navigation (hash routes) ===== */
+const SCREENS=['home','sessions','progress','guide','export'];
+function route(){
+  const id=(location.hash||'#home').slice(1); const target=SCREENS.includes(id)?id:'home';
+  SCREENS.forEach(s=>document.getElementById(s).classList.toggle('active',s===target));
+  ({home:renderHome,sessions:renderSessions,progress:renderProgress,guide:()=>{},export:renderExport})[target]();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+
+/* ===== Buttons ===== */
+document.getElementById('btnSample').addEventListener('click',()=>{ const n=addSessions(SAMPLE,'sample'); toast(n? 'Loaded '+n+' sample sessions.' : 'Sample sessions are already loaded.'); renderHome(); });
+document.getElementById('btnClear').addEventListener('click',()=>{ if(confirm('Delete all saved sessions from this phone?')){ save([]); setSrc(''); toast('All saved sessions deleted.'); renderHome(); } });
+document.getElementById('pid').addEventListener('change',e=>{ try{ localStorage.setItem(KEY_PID,e.target.value.trim()); }catch(err){} });
+document.getElementById('btnExport').addEventListener('click',async()=>{
+  const list=load(); if(!list.length){ toast('No sessions to export yet.'); return; }
+  const pid=(document.getElementById('pid').value.trim()||'unspecified').replace(/[^\w-]/g,'');
+  const csv=['patient_id,date,time,minutes,extensor_only,co_contraction,flexor_dominant,rest,signal_faults']
+    .concat(list.map(s=>[pid,s.date,s.time,s.minutes,s.extensor,s.coco,s.flexor,s.rest,s.faults].join(','))).join('\n');
+  const name='SIGLA_logs_'+pid+'.csv';
+  const file=new File([csv],name,{type:'text/csv'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'SIGLA session logs'}); toast('Shared '+name+'.'); return; }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000); toast('Saved '+name+' to Downloads.');
+});
+
+/* ===== Web Bluetooth ===== */
+let device=null, connected=false, rxChar=null, buffer='', incoming=[];
+function setStatus(on, text, sub){
+  connected=on;
+  document.getElementById('statusText').textContent=text;
+  document.getElementById('statusSub').textContent=sub;
+  document.getElementById('statusDot').classList.toggle('on',on);
+  document.getElementById('btnConnect').textContent = on ? 'Download sessions' : 'Connect to SIGLA';
+}
+function onData(e){
+  buffer += new TextDecoder().decode(e.target.value);
+  let i; while((i=buffer.indexOf('\n'))>=0){
+    const line=buffer.slice(0,i).trim(); buffer=buffer.slice(i+1);
+    if(!line) continue;
+    if(line==='END'){ const n=addSessions(incoming,'device'); incoming=[]; toast(n? 'Downloaded '+n+' new session'+(n>1?'s':'')+'.' : 'No new sessions on the device.'); setStatus(true,'Connected to SIGLA','Sessions up to date'); renderHome(); }
+    else incoming.push(line);
+  }
+}
+async function requestLogs(){
+  if(!rxChar) return; incoming=[]; buffer='';
+  setStatus(true,'Connected to SIGLA','Downloading sessions…');
+  await rxChar.writeValue(new TextEncoder().encode('SEND\n'));
+}
+document.getElementById('btnConnect').addEventListener('click',async()=>{
+  if(!('bluetooth' in navigator)){ toast('Bluetooth is not available in this browser. Open the app in Chrome on an Android phone.'); return; }
+  try{
+    if(connected){ await requestLogs(); return; }
+    setStatus(false,'Searching for SIGLA…','Make sure the device is on and nearby');
+    device = await navigator.bluetooth.requestDevice({filters:[{namePrefix:'SIGLA'}], optionalServices:[SERVICE_UUID]});
+    device.addEventListener('gattserverdisconnected',()=>{ rxChar=null; setStatus(false,'Device disconnected','Tap Connect to try again'); });
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    const tx = await service.getCharacteristic(TX_UUID);
+    rxChar = await service.getCharacteristic(RX_UUID);
+    await tx.startNotifications(); tx.addEventListener('characteristicvaluechanged',onData);
+    await requestLogs();
+  }catch(e){
+    if(e && e.name==='NotFoundError'){ setStatus(false,'Device not connected','No device was chosen'); return; }
+    setStatus(false,'Could not connect','Turn on Bluetooth and location, then try again'); console.error(e);
+  }
+});
+
+/* ===== Start ===== */
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+route();
+</script>
+</body>
+</html>
